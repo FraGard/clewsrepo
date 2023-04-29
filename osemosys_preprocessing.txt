@@ -68,7 +68,7 @@ param TotalTechnologyModelPeriodActivityUpperLimit{r in REGION, t in TECHNOLOGY}
 param TradeRoute{r in REGION, rr in REGION, f in COMMODITY, y in YEAR};
 param VariableCost{r in REGION, t in TECHNOLOGY, m in MODE_OF_OPERATION, y in YEAR};
 param YearSplit{l in TIMESLICE, y in YEAR};
-
+param EmissionToActivityChangeRatio{r in REGION, t in TECHNOLOGY, e in EMISSION, m in MODE_OF_OPERATION, y in YEAR};
 param UDCMultiplierTotalCapacity{r in REGION, t in TECHNOLOGY, u in UDC, y in YEAR};
 param UDCMultiplierNewCapacity{r in REGION, t in TECHNOLOGY, u in UDC, y in YEAR};
 param UDCMultiplierActivity{r in REGION, t in TECHNOLOGY, u in UDC, y in YEAR};
@@ -135,6 +135,7 @@ var TotalTechnologyModelPeriodActivity{r in REGION, t in TECHNOLOGY};
 var Trade{r in REGION, rr in REGION, l in TIMESLICE, f in COMMODITY, y in YEAR};
 var UseByTechnology{r in REGION, l in TIMESLICE, t in TECHNOLOGY, f in COMMODITY, y in YEAR} >= 0;
 var UseByTechnologyAnnual{r in REGION, t in TECHNOLOGY, f in COMMODITY, y in YEAR} >= 0;
+var EmissionByActivityChange{r in REGION, t in TECHNOLOGY, e in EMISSION, m in MODE_OF_OPERATION, y in YEAR};
 #
 ######################
 # Objective Function #
@@ -190,10 +191,10 @@ s.t. AAC2_TotalAnnualTechnologyActivityUpperLimit{r in REGION, t in TECHNOLOGY, 
 s.t. AAC3_TotalAnnualTechnologyActivityLowerLimit{r in REGION, t in TECHNOLOGY, y in YEAR: TotalTechnologyAnnualActivityLowerLimit[r,t,y]>0}: sum{l in TIMESLICE, m in MODEperTECHNOLOGY[t]} RateOfActivity[r,l,t,m,y]*YearSplit[l,y] >= TotalTechnologyAnnualActivityLowerLimit[r,t,y] ;
 s.t. CAa4_Constraint_Capacity{r in REGION, l in TIMESLICE, t in TECHNOLOGY, y in YEAR}: sum{m in MODEperTECHNOLOGY[t]} RateOfActivity[r,l,t,m,y] <= ((sum{yy in YEAR: y-yy < OperationalLife[r,t] && y-yy>=0} NewCapacity[r,t,yy])+ ResidualCapacity[r,t,y])*CapacityFactor[r,t,l,y]*CapacityToActivityUnit[r,t];
 s.t. CAb1_PlannedMaintenance{r in REGION, t in TECHNOLOGY, y in YEAR}: sum{l in TIMESLICE} sum{m in MODEperTECHNOLOGY[t]} RateOfActivity[r,l,t,m,y]*YearSplit[l,y] <= sum{l in TIMESLICE} (((sum{yy in YEAR: y-yy < OperationalLife[r,t] && y-yy>=0} NewCapacity[r,t,yy])+ ResidualCapacity[r,t,y])*CapacityFactor[r,t,l,y]*YearSplit[l,y])* AvailabilityFactor[r,t,y]*CapacityToActivityUnit[r,t];
-s.t. E5_DiscountedEmissionsPenaltyByTechnology{r in REGION, t in TECHNOLOGY, y in YEAR}: sum{e in EMISSION, l in TIMESLICE, (m,tt) in MODExTECHNOLOGYperEMISSION[e]: t=tt} EmissionActivityRatio[r,t,e,m,y]*RateOfActivity[r,l,t,m,y]*YearSplit[l,y]*EmissionsPenalty[r,e,y]/((1+DiscountRate[r])^(y-min{yy in YEAR} min(yy)+0.5)) = DiscountedTechnologyEmissionsPenalty[r,t,y];
-s.t. E6_EmissionsAccounting1{r in REGION, e in EMISSION, y in YEAR}: sum{l in TIMESLICE, t in TECHNOLOGY, m in MODEperTECHNOLOGY[t]: EmissionActivityRatio[r,t,e,m,y]<>0} EmissionActivityRatio[r,t,e,m,y]*RateOfActivity[r,l,t,m,y]*YearSplit[l,y] = AnnualEmissions[r,e,y];
-s.t. E8_AnnualEmissionsLimit{r in REGION, e in EMISSION, y in YEAR}: sum{l in TIMESLICE, (m,t) in MODExTECHNOLOGYperEMISSION[e]} EmissionActivityRatio[r,t,e,m,y]*RateOfActivity[r,l,t,m,y]*YearSplit[l,y]+AnnualExogenousEmission[r,e,y] <= AnnualEmissionLimit[r,e,y];
-s.t. E9_ModelPeriodEmissionsLimit{r in REGION, e in EMISSION}:  sum{l in TIMESLICE, (m,t) in MODExTECHNOLOGYperEMISSION[e], y in YEAR} EmissionActivityRatio[r,t,e,m,y]*RateOfActivity[r,l,t,m,y]*YearSplit[l,y] + ModelPeriodExogenousEmission[r,e] <= ModelPeriodEmissionLimit[r,e] ;
+s.t. E5_DiscountedEmissionsPenaltyByTechnology{r in REGION, t in TECHNOLOGY, y in YEAR}: sum{e in EMISSION} (sum{l in TIMESLICE, (m,tt) in MODExTECHNOLOGYperEMISSION[e]: t=tt} EmissionActivityRatio [r, t, e, m, y] * RateOfActivity [r, l, t, m, y] * YearSplit [l, y] + sum{(m,tt) in MODExTECHNOLOGYperEMISSION[e]: t=tt} EmissionByActivityChange[r, t, e, m, y])* EmissionsPenalty [r, e, y] / ((1 + DiscountRate [r]) ^ (y - min{yy in YEAR} min(yy) + 0.5)) = DiscountedTechnologyEmissionsPenalty [r, t, y];
+s.t. E6_EmissionsAccounting1{r in REGION, e in EMISSION, y in YEAR}: sum{t in TECHNOLOGY, l in TIMESLICE, m in MODEperTECHNOLOGY[t]: EmissionActivityRatio [r, t, e, m, y] <> 0} EmissionActivityRatio [r, t, e, m, y] * RateOfActivity [r, l, t, m, y] * YearSplit [l, y] + sum{t in TECHNOLOGY, m in MODEperTECHNOLOGY[t]} EmissionByActivityChange[r, t, e, m, y] = AnnualEmissions [r, e, y];
+s.t. E8_AnnualEmissionsLimit{r in REGION, e in EMISSION, y in YEAR}: sum{l in TIMESLICE, (m,t) in MODExTECHNOLOGYperEMISSION[e]} EmissionActivityRatio [r, t, e, m, y] * RateOfActivity [r, l, t, m, y] * YearSplit [l, y] + sum{(m,t) in MODExTECHNOLOGYperEMISSION[e]} EmissionByActivityChange[r, t, e, m, y] + AnnualExogenousEmission [r, e, y] <= AnnualEmissionLimit [r, e, y];
+s.t. E9_ModelPeriodEmissionsLimit{r in REGION, e in EMISSION}: sum{(m,t) in MODExTECHNOLOGYperEMISSION[e], y in YEAR, l in TIMESLICE} EmissionActivityRatio [r, t, e, m, y] * RateOfActivity [r, l, t, m, y] * YearSplit [l, y] + sum{(m,t) in MODExTECHNOLOGYperEMISSION[e], y in YEAR} EmissionByActivityChange[r, t, e, m, y] + ModelPeriodExogenousEmission [r, e] <= ModelPeriodEmissionLimit [r, e];
 s.t. EBa11_EnergyBalanceEachTS5{r in REGION, l in TIMESLICE, f in COMMODITY, y in YEAR}: sum{(m,t) in MODExTECHNOLOGYperFUELout[f]} RateOfActivity[r,l,t,m,y]*OutputActivityRatio[r,t,f,m,y]*YearSplit[l,y] >= SpecifiedAnnualDemand[r,f,y]*SpecifiedDemandProfile[r,f,l,y] + sum{(m,t) in MODExTECHNOLOGYperFUELin[f]} RateOfActivity[r,l,t,m,y]*InputActivityRatio[r,t,f,m,y]*YearSplit[l,y] + sum{rr in REGION} Trade[r,rr,l,f,y]*TradeRoute[r,rr,f,y];
 s.t. EBa9_EnergyBalanceEachTS3{r in REGION, l in TIMESLICE, f in COMMODITY, y in YEAR}: SpecifiedAnnualDemand[r,f,y]*SpecifiedDemandProfile[r,f,l,y] = Demand[r,l,f,y];
 s.t. EBb4_EnergyBalanceEachYear4{r in REGION, f in COMMODITY, y in YEAR}: sum{(m,t) in MODExTECHNOLOGYperFUELout[f], l in TIMESLICE} RateOfActivity[r,l,t,m,y]*OutputActivityRatio[r,t,f,m,y]*YearSplit[l,y] >= sum{(m,t) in MODExTECHNOLOGYperFUELin[f], l in TIMESLICE} RateOfActivity[r,l,t,m,y]*InputActivityRatio[r,t,f,m,y]*YearSplit[l,y] + sum{l in TIMESLICE, rr in REGION} Trade[r,rr,l,f,y]*TradeRoute[r,rr,f,y] + AccumulatedAnnualDemand[r,f,y];
@@ -207,6 +208,10 @@ s.t. TAC2_TotalModelHorizonTechnologyActivityUpperLimit{r in REGION, t in TECHNO
 s.t. TAC3_TotalModelHorizonTechnologyActivityLowerLimit{r in REGION, t in TECHNOLOGY: TotalTechnologyModelPeriodActivityLowerLimit[r,t]>0}: sum{l in TIMESLICE, m in MODEperTECHNOLOGY[t], y in YEAR} RateOfActivity[r,l,t,m,y]*YearSplit[l,y] >= TotalTechnologyModelPeriodActivityLowerLimit[r,t] ;
 s.t. TCC1_TotalAnnualMaxCapacityConstraint{r in REGION, t in TECHNOLOGY, y in YEAR}: ((sum{yy in YEAR: y-yy < OperationalLife[r,t] && y-yy>=0} NewCapacity[r,t,yy])+ ResidualCapacity[r,t,y]) <= TotalAnnualMaxCapacity[r,t,y];
 s.t. TCC2_TotalAnnualMinCapacityConstraint{r in REGION, t in TECHNOLOGY, y in YEAR: TotalAnnualMinCapacity[r,t,y]>0}: ((sum{yy in YEAR: y-yy < OperationalLife[r,t] && y-yy>=0} NewCapacity[r,t,yy])+ ResidualCapacity[r,t,y]) >= TotalAnnualMinCapacity[r,t,y];
+
+# Emission change constraints
+
+s.t. E10_InterYearActivityEmissionChange{r in REGION, t in TECHNOLOGY, e in EMISSION, m in MODEperTECHNOLOGY[t], y in YEAR, yy in YEAR: y-yy==1 && y > min{yyy in YEAR} min(yyy) && EmissionToActivityChangeRatio[r, t, e, m, y] <> 0}: (TotalAnnualTechnologyActivityByMode[r, t, m, y]-TotalAnnualTechnologyActivityByMode[r, t, m, yy]) * EmissionToActivityChangeRatio[r, t, e, m, y] = EmissionByActivityChange[r, t, e, m, y];
 
 #s.t. UDC1_UserDefinedConstraints{r in REGION, u in UDC, y in YEAR: UDCTag[r,u] <> 0 && UDCTag[r,u] <> -1}: 
 #sum{t in TECHNOLOGY}UDCMultiplier[r,t,u,y]*TotalCapacityAnnual[r,t,y] >= UDCConstant[r,u,y];
@@ -303,5 +308,7 @@ table tout {r in REGION, l in TIMESLICE, t in TECHNOLOGY, f in COMMODITY, y in Y
 table tout {r in REGION, t in TECHNOLOGY, f in COMMODITY, y in YEAR} OUT "CSV" ResultsPath & "/UseByTechnologyAnnual.csv" : r, t, f, y, UseByTechnologyAnnual[r, t, f, y];
 
 #table tout {r in REGION, t in TECHNOLOGY, y in YEAR} OUT "CSV" ResultsPath & "/DPATHTEST.csv" : r, t, y, AccumulatedNewCapacity[r, t, y];
+
+table tout {r in REGION, t in TECHNOLOGY, e in EMISSION, m in MODE_OF_OPERATION, y in YEAR} OUT "CSV" ResultsPath & "/EmissionByActivityChange.csv" : r, t, e, m, y, EmissionByActivityChange[r,t,e,m,y];
 #
 end;
