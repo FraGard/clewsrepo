@@ -83,7 +83,7 @@ var AnnualVariableOperatingCost{r in REGION, t in TECHNOLOGY, y in YEAR};
 var CapitalInvestment{r in REGION, t in TECHNOLOGY, y in YEAR} >= 0;
 var Demand{r in REGION, l in TIMESLICE, f in COMMODITY, y in YEAR} >= 0;
 var DiscountedSalvageValue{r in REGION, t in TECHNOLOGY, y in YEAR} >= 0;
-var DiscountedTechnologyEmissionsPenalty{r in REGION, t in TECHNOLOGY, y in YEAR} >= 0;
+var DiscountedTechnologyEmissionsPenalty{r in REGION, t in TECHNOLOGY, y in YEAR};
 var InputToNewCapacity{r in REGION, t in TECHNOLOGY, f in COMMODITY, y in YEAR} >= 0;
 var InputToTotalCapacity{r in REGION, t in TECHNOLOGY, f in COMMODITY, y in YEAR} >= 0;
 var NewCapacity{r in REGION, t in TECHNOLOGY, y in YEAR} >= 0;
@@ -182,7 +182,8 @@ s.t. TCC2_TotalAnnualMinCapacityConstraint{y in YEAR, r in REGION, t in TECHNOLO
 
 # Emission change constraints
 
-s.t. E10_InterYearActivityEmissionChange{r in REGION, t in TECHNOLOGY, e in EMISSION, m in MODE_OF_OPERATION, y in YEAR, yy in YEAR: y-yy==1 && y > min{yyy in YEAR} min(yyy)}: (TotalAnnualTechnologyActivityByMode[r, t, m, y]-TotalAnnualTechnologyActivityByMode[r, t, m, yy]) * EmissionToActivityChangeRatio[r, t, e, m, y] = EmissionByActivityChange[r, t, e, m, y];
+s.t. E10_InterYearActivityEmissionChangeYear0{r in REGION, t in TECHNOLOGY, e in EMISSION, m in MODE_OF_OPERATION, y in YEAR: y == min{yyy in YEAR} min(yyy)}: EmissionByActivityChange[r, t, e, m, y] = 0;
+s.t. E11_InterYearActivityEmissionChange{r in REGION, t in TECHNOLOGY, e in EMISSION, m in MODE_OF_OPERATION, y in YEAR, yy in YEAR: y-yy==1 && y > min{yyy in YEAR} min(yyy)}: (TotalAnnualTechnologyActivityByMode[r, t, m, y]-TotalAnnualTechnologyActivityByMode[r, t, m, yy]) * EmissionToActivityChangeRatio[r, t, e, m, y] = EmissionByActivityChange[r, t, e, m, y];
 
 #s.t. UDC1_UserDefinedConstraints{r in REGION, u in UDC, y in YEAR: UDCTag[r,u] <> 0 && UDCTag[r,u] <> -1}: 
 #sum{t in TECHNOLOGY}UDCMultiplier[r,t,u,y]*TotalCapacityAnnual[r,t,y] >= UDCConstant[r,u,y];
