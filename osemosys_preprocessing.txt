@@ -155,7 +155,7 @@ s.t. CAa1_TotalNewCapacity{r in REGION, t in TECHNOLOGY, y in YEAR}:AccumulatedN
 s.t. CAa2_TotalAnnualCapacity{r in REGION, t in TECHNOLOGY, y in YEAR}: ((sum{yy in YEAR: y-yy < OperationalLife[r,t] && y-yy>=0} NewCapacity[r,t,yy])+ ResidualCapacity[r,t,y]) = TotalCapacityAnnual[r,t,y];
 s.t. CAa5_TotalNewCapacity{r in REGION, t in TECHNOLOGY, y in YEAR: CapacityOfOneTechnologyUnit[r,t,y]<>0}: CapacityOfOneTechnologyUnit[r,t,y]*NumberOfNewTechnologyUnits[r,t,y] = NewCapacity[r,t,y];
 s.t. CC1_UndiscountedCapitalInvestment{r in REGION, t in TECHNOLOGY, y in YEAR}: CapitalCost[r,t,y] * NewCapacity[r,t,y] = CapitalInvestment[r,t,y];
-s.t. E2_AnnualEmissionProduction{r in REGION, t in TECHNOLOGY, e in EMISSION, y in YEAR}: sum{l in TIMESLICE, m in MODEperTECHNOLOGY[t]: EmissionActivityRatio[r,t,e,m,y]<>0} EmissionActivityRatio[r,t,e,m,y]*RateOfActivity[r,l,t,m,y]*YearSplit[l,y] = AnnualTechnologyEmission[r,t,e,y];
+s.t. E2_AnnualEmissionProduction{r in REGION, t in TECHNOLOGY, e in EMISSION, y in YEAR}: sum{l in TIMESLICE, m in MODEperTECHNOLOGY[t]: EmissionActivityRatio[r,t,e,m,y]<>0} EmissionActivityRatio[r,t,e,m,y]*RateOfActivity[r,l,t,m,y]*YearSplit[l,y] + sum{m in MODEperTECHNOLOGY[t]}EmissionByActivityChange[r, t, e, m, y]= AnnualTechnologyEmission[r,t,e,y];
 s.t. EBa10_EnergyBalanceEachTS4{r in REGION, rr in REGION, l in TIMESLICE, f in COMMODITY, y in YEAR}: Trade[r,rr,l,f,y] = -Trade[rr,r,l,f,y];
 #s.t. EBa1_RateOfFuelProduction1{r in REGION, l in TIMESLICE, f in COMMODITY, t in TECHNOLOGY, m in MODEperTECHNOLOGY[t], y in YEAR}:  RateOfActivity[r,l,t,m,y]*OutputActivityRatio[r,t,f,m,y]  = RateOfProductionByTechnologyByMode[r,l,t,m,f,y];
 #s.t. EBa2_RateOfFuelProduction2{r in REGION, l in TIMESLICE, f in COMMODITY, t in TECHNOLOGY, y in YEAR}: sum{m in MODEperTECHNOLOGY[t]} RateOfActivity[r,l,t,m,y]*OutputActivityRatio[r,t,f,m,y] = RateOfProductionByTechnology[r,l,t,f,y] ;
@@ -211,7 +211,7 @@ s.t. TCC2_TotalAnnualMinCapacityConstraint{r in REGION, t in TECHNOLOGY, y in YE
 
 # Emission change constraints
 
-s.t. E10_InterYearActivityEmissionChange{r in REGION, t in TECHNOLOGY, e in EMISSION, m in MODEperTECHNOLOGY[t], y in YEAR, yy in YEAR: y-yy==1 && y > min{yyy in YEAR} min(yyy) && EmissionToActivityChangeRatio[r, t, e, m, y] <> 0}: (TotalAnnualTechnologyActivityByMode[r, t, m, y]-TotalAnnualTechnologyActivityByMode[r, t, m, yy]) * EmissionToActivityChangeRatio[r, t, e, m, y] = EmissionByActivityChange[r, t, e, m, y];
+s.t. E10_InterYearActivityEmissionChange{r in REGION, t in TECHNOLOGY, e in EMISSION, m in MODEperTECHNOLOGY[t], y in YEAR, yy in YEAR: y-yy==1 && y > min{yyy in YEAR} min(yyy)}: (TotalAnnualTechnologyActivityByMode[r, t, m, y]-TotalAnnualTechnologyActivityByMode[r, t, m, yy]) * EmissionToActivityChangeRatio[r, t, e, m, y] = EmissionByActivityChange[r, t, e, m, y];
 
 #s.t. UDC1_UserDefinedConstraints{r in REGION, u in UDC, y in YEAR: UDCTag[r,u] <> 0 && UDCTag[r,u] <> -1}: 
 #sum{t in TECHNOLOGY}UDCMultiplier[r,t,u,y]*TotalCapacityAnnual[r,t,y] >= UDCConstant[r,u,y];
